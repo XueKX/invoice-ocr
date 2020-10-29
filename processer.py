@@ -48,6 +48,11 @@ template_boxs.append(date)
 
 bill_dict = dict(zip(name, template_boxs))
 
+x_threshold = 10
+y_threshold = 10
+x_Lengthen = 5
+y_lengthen = 5
+
 
 def call_time(func):
     @functools.wraps(func)
@@ -160,40 +165,231 @@ def make_iou(box1, box2):
     return iou_ratio
 
 
-def get_area(detect_boxes):
+def get_area(detect_boxes, w, h):
     '''
-    遍历检测框
+    遍历检测框 获取指定区域
     :param detect_boxes:
     :return:
     '''
+    boxes = four_point_2_two(detect_boxes)
+
+    boxes_new = two_point_2_four(boxes)
+
+    new_rectangle_list = merge_boxs(boxes_new, w, h)
+    print(len(detect_boxes), len(new_rectangle_list))
+
+    draw_rectangle(new_rectangle_list)
+
+    ret_dic = {}
     for i, key in enumerate(bill_dict.keys()):
+        mark_iou_ratio = 0.1
         template_box = bill_dict[key]
         template_box_new = [template_box[0], template_box[1],
                             template_box[4], template_box[5]]
-        for detect_boxe in detect_boxes:
-            detect_boxe_new = [detect_boxe[2][0], detect_boxe[2][1],
-                               detect_boxe[0][0], detect_boxe[0][1]]
+        for detect_boxe in new_rectangle_list:
+            detect_boxe_new = detect_boxe
             iou_ratio = make_iou(detect_boxe_new, template_box_new)
-            if iou_ratio > 0.1:
-                print(key, iou_ratio, detect_boxe)
-        # break
+            if iou_ratio > mark_iou_ratio:
+                mark_iou_ratio = iou_ratio
+                print(key, iou_ratio)
+                ret_dic[key] = detect_boxe
+    print(ret_dic)
+    return ret_dic
 
 
-def draw(detect_boxes):
+def merge_boxs(point_list, w, h):
+    """
+    将list中矩形合并，并将新矩形增加高度和宽度返回
+    :param point_list: 矩形list
+    :param w: 图片宽
+    :param h: 图片高
+    :return: 新的矩形list
+    """
+
+    def two_point_compare(point_1, point_2):
+        """
+        看两个矩形是否靠近，如果两个矩形的距离在一定范围之内，则生成一个新的矩形，
+        新矩形的左上角点为原先两个矩形左边矩形的左上角点
+        新矩形的右下角点为原先两个矩形右边边矩形的右下角点
+        :param point_1: 矩形1
+        :param point_2: 矩形2
+        :return: 新矩形
+        """
+        if point_1[0] >= point_2[0]:
+            # point_1 在 point_2 右边
+            point_change_1 = point_2
+            point_change_2 = point_1
+        else:
+            point_change_1 = point_1
+            point_change_2 = point_2
+        if abs(point_change_1[2] - point_change_2[0]) <= x_threshold and abs(
+                point_change_1[3] - point_change_2[1]) <= y_threshold:
+            if point_change_1[3] - point_change_2[1] > 0:
+                new_point = (
+                    point_change_1[0], point_change_2[1],
+                    point_change_2[2], point_change_2[3],
+                    point_change_2[4], point_change_2[5],
+                    point_change_1[6], point_change_1[7])
+            else:
+                new_point = (
+                    point_change_1[0], point_change_1[1],
+                    point_change_2[2], point_change_2[3],
+                    point_change_2[4], point_change_2[5],
+                    point_change_1[6], point_change_1[7])
+        else:
+            new_point = ()
+
+        return new_point
+
+    def get_new_list(old_list):
+        """
+        将原list中的矩形判断距离，距离在一定范围之内的矩形按照上面的方式合并成一个新的矩形，并将新矩形添加到list中
+        ，并将原先两个矩形从list中移除。
+        :param old_list: 矩形的list
+        :return: 新生成的list
+        """
+        for i in range(len(old_list)):
+            if i == len(old_list):
+                break
+            point1 = old_list[i]
+            for j in range(i + 1, len(old_list)):
+                point2 = old_list[j]
+                if point1 != point2:
+                    new_point = two_point_compare(point1, point2)
+                    if new_point != ():
+                        old_list.remove(point1)
+                        old_list.remove(point2)
+                        old_list.append(new_point)
+                        break
+                    else:
+                        pass
+
+        return old_list
+
+    def get_new_point_list(point_list):
+        """
+        将list中的在一定范围内的矩形都合并
+        :param point_list: 矩阵list
+        :return: 合并矩阵之后的矩阵
+        """
+        len_ori = len(point_list)
+        while True:
+            new_list = get_new_list(point_list)
+            len_new = len(new_list)
+            if len_ori == len_new:
+                break
+            len_ori = len(new_list)
+        return new_list
+
+    def point_change(point, w, h):
+        """
+        将矩形增加宽度和高度，但是增加后的矩形的顶点要在图片中
+        :param point: 矩形
+        :param w: 图片的宽度
+        :param h: 图片的高度
+        :return: 新矩形
+        """
+        x1 = point[0]
+        y1 = point[1]
+        x2 = point[4]
+        y2 = point[5]
+        return (x1 - x_Lengthen if (x1 - x_Lengthen > 0) else 0,
+                y1 - y_lengthen if (y1 - y_lengthen > 0) else 0,
+                x2 + x_Lengthen if (x2 + x_Lengthen < w) else w,
+                y2 + y_lengthen if (y2 + y_lengthen < h) else h)
+
+    new_list = []
+    old_list = get_new_point_list(point_list)
+    for old_point in old_list:
+        new_point = point_change(old_point, w, h)
+        if new_point[0] < new_point[2] and new_point[1] < new_point[3]:
+            new_list.append(new_point)
+
+    return new_list
+
+
+def draw_rectangle(new_rectangle_list):
     '''
-    画出四个点坐标的区域
-    :param detect_boxes:
+    画出矩形
+    :param new_rectangle_list:
     :return:
     '''
-    detect_boxes = [391.5789489746094, 310.01953125, 391.5789489746094, 279.8125, 781.5789794921875, 279.8125,
-                    781.5789794921875, 310.01953125]
-    img_path = r'D:\PyCharmProjects_WIN\Detect_OCR\invoice_ocr\images\result\boxs.jpg'
+    img_path = './images/detect_boxs.jpg'
     img = cv2.imread(img_path)
+    for detect_boxes in new_rectangle_list:
+        # 画矩形,红色的线框出来。
+        if len(detect_boxes) == 4:
+            cv2.rectangle(img=img, pt1=(int(detect_boxes[0]), int(detect_boxes[1])),
+                          pt2=(int(detect_boxes[2]), int(detect_boxes[3])),
+                          color=(0, 0, 255), thickness=2)
+    cv2.imwrite('./images/merge_boxs.jpg', img)
 
-    box = np.array(list(map(int, detect_boxes)))
-    cv2.polylines(img, [box.astype(np.int32).reshape((-1, 1, 2))], True, color=(0, 255, 0),
-                  thickness=2)
-    cv2.imwrite('draw.jpg', img)
+
+def change_boxs(detect_boxes):
+    new_boxs = []
+    for detect_box in detect_boxes:
+        new_boxs.append((detect_box[2][0], detect_box[2][1],
+                         detect_box[3][0], detect_box[3][1],
+                         detect_box[0][0], detect_box[0][1],
+                         detect_box[1][0], detect_box[1][1]))
+    return new_boxs
+
+
+def four_point_2_two(point_list):
+    '''
+    四个乱序坐标转左上和右下两个点坐标
+    :param point_list:
+    :return:
+    '''
+    result = []
+    for old_point in point_list:
+        new_list = []
+        x = [int(old_point[0][0]), int(old_point[1][0]), int(old_point[2][0]), int(old_point[3][0])]
+        y = [int(old_point[0][1]), int(old_point[1][1]), int(old_point[2][1]), int(old_point[3][1])]
+        new_list.append(min(x))
+        new_list.append(min(y))
+        new_list.append(max(x) + 5)
+        new_list.append(max(y) + 1)
+        result.append(new_list)
+    return result
+
+
+def two_point_2_four(point_list):
+    '''
+    左上和右下两个点坐标转四个点坐标
+    :param point_list:
+    :return:
+    '''
+    result = []
+    for old_point in point_list:
+        w = old_point[2] - old_point[0]
+        h = old_point[3] - old_point[1]
+        new_list = []
+        new_list.append(old_point[0])
+        new_list.append(old_point[1])
+        new_list.append(old_point[0] + w)
+        new_list.append(old_point[1])
+        new_list.append(old_point[2])
+        new_list.append(old_point[3])
+        new_list.append(old_point[0])
+        new_list.append(old_point[1] + h)
+        result.append(new_list)
+    return result
+
+
+def get_cut_image(coordinate_point, image):
+    """
+    根据四个顶点的坐标，将坐标围成的长方形图片从原图中裁减出来
+    :param coordinate_point:四个顶点的坐标
+    :param image: 原图
+    :return: 裁减出来的图片
+    """
+    x0 = coordinate_point[0]
+    x1 = coordinate_point[2]
+    y0 = coordinate_point[1]
+    y1 = coordinate_point[3]
+    cropped = image[y0:y1, x0:x1]
+    return cropped
 
 
 if __name__ == '__main__':
@@ -357,5 +553,11 @@ if __name__ == '__main__':
          [1859.0614013671875, 1110.3984375], [1866.1026611328125, 1152.9375]],
         [[1571.0526123046875, 1149.45703125], [1446.3157958984375, 1149.45703125],
          [1446.3157958984375, 1125.609375], [1571.0526123046875, 1125.609375]]]
-    get_area(detect_boxes)
-    # draw(detect_boxes)
+    # ret_dic = get_area(detect_boxes, 1920, 1221)
+    ret_dic = {'buyer_name': (329, 274, 791, 316), 'buyer_id': (424, 319, 898, 360),
+               'buyer_address_phone': (399, 370, 1063, 411), 'buyer_bank_no': (399, 414, 987, 455),
+               'seller_name': (285, 929, 766, 964), 'seller_id': (430, 974, 911, 1015),
+               'seller_address_phone': (392, 1014, 1090, 1054), 'seller_bank_no': (392, 1053, 741, 1103),
+               'bill_no': (1433, 96, 1702, 162), 'price': (1365, 809, 1530, 843), 'tax': (1738, 809, 1877, 850),
+               'account_cap': (645, 866, 949, 901), 'account_lower': (1529, 872, 1707, 907),
+               'date': (1592, 211, 1821, 246)}

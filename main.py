@@ -1,8 +1,10 @@
 import base64
 import functools
 import io
+import os
 import time
 
+import cv2
 from PIL import Image
 from flask import Flask, request
 import json
@@ -10,7 +12,7 @@ import logging
 import numpy as np
 from logging.handlers import TimedRotatingFileHandler
 
-from processer import get_perspective_img, call_time, get_area
+from processer import get_perspective_img, call_time, get_area, get_cut_image
 from psenet_tf.eval import detect_pse
 
 log_fmt = '%(asctime)s\tFile \"%(filename)s\",line %(lineno)s\t%(levelname)s: %(message)s'
@@ -21,6 +23,10 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
 log.addHandler(log_file_handler)
 app = Flask(__name__)
+
+path = './images/result'
+if not os.path.exists(path):
+    os.makedirs(path)
 
 
 @app.route('/')
@@ -39,11 +45,16 @@ def ocr():
     img_array = io.BytesIO(image_data)
     image = np.array(Image.open(img_array).convert('L'))
 
-    img_perspective = get_perspective_img(image)
+    perspective_img = get_perspective_img(image)
 
-    boxes = detect_pse(img_perspective)
+    boxes = detect_pse(perspective_img)
 
-    get_area(boxes)
+    ret_dic = get_area(boxes, perspective_img.shape[1], perspective_img.shape[0])
+
+    for i, key in enumerate(ret_dic.keys()):
+        cut_image = get_cut_image(ret_dic[key], perspective_img)
+        cv2.imwrite(path + '/{}.jpg'.format(key), cut_image)
+
     return 'ss'
 
 
