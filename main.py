@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import base64
 import functools
 import io
@@ -12,6 +13,7 @@ import logging
 import numpy as np
 from logging.handlers import TimedRotatingFileHandler
 
+from paddleocr.ocr_api import do_ocr
 from processer import get_perspective_img, call_time, get_area, get_cut_image
 from psenet_tf.eval import detect_pse
 
@@ -49,13 +51,16 @@ def ocr():
 
     boxes = detect_pse(perspective_img)
 
-    ret_dic = get_area(boxes, perspective_img.shape[1], perspective_img.shape[0])
+    ret_box_dic = get_area(boxes, perspective_img.shape[1], perspective_img.shape[0])
 
-    for i, key in enumerate(ret_dic.keys()):
-        cut_image = get_cut_image(ret_dic[key], perspective_img)
+    ret_data = {}
+    for i, key in enumerate(ret_box_dic.keys()):
+        cut_image = get_cut_image(ret_box_dic[key], perspective_img)
         cv2.imwrite(path + '/{}.jpg'.format(key), cut_image)
+        ocr_ret = do_ocr(path + '/{}.jpg'.format(key))
+        ret_data[key] = ocr_ret[0][0]
 
-    return 'ss'
+    return json.dumps(ret_data, ensure_ascii=False)
 
 
 if __name__ == '__main__':

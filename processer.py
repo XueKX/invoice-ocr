@@ -53,6 +53,8 @@ y_threshold = 10
 x_Lengthen = 5
 y_lengthen = 5
 
+kp1 = des1 = hf1 = wf1 = None
+
 
 def call_time(func):
     @functools.wraps(func)
@@ -88,36 +90,37 @@ def get_perspective_img(parse_img_name):
     获取透视变换后的图片
     :return:
     '''
+    W = 1920  # resize后的宽
     template_img_name = './images/template.jpg'
-    # parse_img_name = 'test.jpg'
-
-    # image_a = cv2.imread(template_img_name, cv2.IMREAD_GRAYSCALE)
-
-    # UMat是一个图像容器
-    template_img = img_resize(cv2.UMat(cv2.imread(template_img_name, cv2.IMREAD_GRAYSCALE)), 1920)
-    parse_img = img_resize(cv2.UMat(parse_img_name), 1920)
-    # parse_img = img_resize(cv2.UMat(cv2.imread(parse_img_name, cv2.IMREAD_GRAYSCALE)), 1920)
-
-    hf1, wf1 = cv2.UMat.get(template_img).shape
-    hf2, wf2 = cv2.UMat.get(parse_img).shape
+    # test_img = './carry_zone/test_02.jpg'
 
     # SURF（加速稳健特征）算法
     min_hessian = 100
     surf = cv2.xfeatures2d.SURF_create(min_hessian)  # 默认100，关键点检测的阈值，越高监测的点越少
+    global kp1, des1, hf1, wf1
+    if kp1 is None:
+        # UMat是一个图像容器
+        template_img = img_resize(cv2.UMat(cv2.imread(template_img_name, cv2.IMREAD_GRAYSCALE)), W)
+        hf1, wf1 = cv2.UMat.get(template_img).shape
 
-    # 返回keypoints是检测关键点，descriptor是描述符，这是图像一种表示方式，可以比较两个图像的关键点描述符，可作为特征匹配的一种方法。
-    kp1, des1 = surf.detectAndCompute(template_img, None)
+        # 返回keypoints是检测关键点，descriptor是描述符，这是图像一种表示方式，可以比较两个图像的关键点描述符，可作为特征匹配的一种方法。
+        kp1, des1 = surf.detectAndCompute(template_img, None)
+
+        # 画出关键点（特征点）
+        # kpImgA = cv2.drawKeypoints(imageA, kp1, imageA)
+        # # kpImgB = cv2.drawKeypoints(grayB, keypointsB, imageB)
+        # cv2.imshow("kpImgA", kpImgA)
+
+    parse_img = img_resize(cv2.UMat(parse_img_name), W)
+    # parse_img = img_resize(cv2.UMat(cv2.imread(test_img, cv2.IMREAD_GRAYSCALE)), W)
+
     kp2, des2 = surf.detectAndCompute(parse_img, None)
-
-    # 画出关键点（特征点）
-    # kpImgA = cv2.drawKeypoints(imageA, kp1, imageA)
-    # # kpImgB = cv2.drawKeypoints(grayB, keypointsB, imageB)
-    # cv2.imshow("kpImgA", kpImgA)
 
     # 用FlannBasedMatcher方法进行特征点匹配,寻找最近邻近似匹配
     FLANN_INDEX_KDTREE = 0
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
     search_params = dict(checks=10)
+    # 匹配耗时 待优化
     matches = cv2.FlannBasedMatcher(index_params, search_params).knnMatch(des1, des2, k=2)
 
     # 通过描述符的距离进行选择需要的点
@@ -165,6 +168,7 @@ def make_iou(box1, box2):
     return iou_ratio
 
 
+@call_time
 def get_area(detect_boxes, w, h):
     '''
     遍历检测框 获取指定区域
@@ -193,7 +197,6 @@ def get_area(detect_boxes, w, h):
                 mark_iou_ratio = iou_ratio
                 print(key, iou_ratio)
                 ret_dic[key] = detect_boxe
-    print(ret_dic)
     return ret_dic
 
 
@@ -553,7 +556,6 @@ if __name__ == '__main__':
          [1859.0614013671875, 1110.3984375], [1866.1026611328125, 1152.9375]],
         [[1571.0526123046875, 1149.45703125], [1446.3157958984375, 1149.45703125],
          [1446.3157958984375, 1125.609375], [1571.0526123046875, 1125.609375]]]
-    # ret_dic = get_area(detect_boxes, 1920, 1221)
     ret_dic = {'buyer_name': (329, 274, 791, 316), 'buyer_id': (424, 319, 898, 360),
                'buyer_address_phone': (399, 370, 1063, 411), 'buyer_bank_no': (399, 414, 987, 455),
                'seller_name': (285, 929, 766, 964), 'seller_id': (430, 974, 911, 1015),
@@ -561,3 +563,7 @@ if __name__ == '__main__':
                'bill_no': (1433, 96, 1702, 162), 'price': (1365, 809, 1530, 843), 'tax': (1738, 809, 1877, 850),
                'account_cap': (645, 866, 949, 901), 'account_lower': (1529, 872, 1707, 907),
                'date': (1592, 211, 1821, 246)}
+    for i in range(3):
+        s1 = time.time()
+        get_perspective_img('')
+        print(time.time() - s1)
