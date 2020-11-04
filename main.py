@@ -7,11 +7,13 @@ import time
 
 import cv2
 from PIL import Image
-from flask import Flask, request
+from flask import Flask, request, render_template, jsonify
 import json
 import logging
 import numpy as np
 from logging.handlers import TimedRotatingFileHandler
+
+from werkzeug.utils import secure_filename
 
 from paddleocr.ocr_api import do_ocr
 from processer import get_perspective_img, call_time, get_area, get_cut_image
@@ -34,6 +36,41 @@ if not os.path.exists(path):
 @app.route('/')
 def hello_world():
     return 'Hello World!'
+
+
+@app.route('/upload', methods=['POST', 'GET'])  # 添加路由
+def upload():
+    '''
+    页面展示
+    :return:
+    '''
+    # 设置允许的文件格式
+    ALLOWED_EXTENSIONS = set(['png', 'jpg', 'JPG', 'PNG', 'bmp'])
+
+    def allowed_file(filename):
+        return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+    if request.method == 'POST':
+        f = request.files['file']
+
+        if not (f and allowed_file(f.filename)):
+            return jsonify({"error": 1001, "msg": "请检查上传的图片类型，仅限于png、PNG、jpg、JPG、bmp"})
+
+        uuid = request.form.get("uuid")
+        fileName = 'upload_images/' + uuid + '_' + secure_filename(f.filename)
+
+        basepath = os.path.dirname(__file__)  # 当前文件所在路径
+        upload_path = os.path.join(basepath, 'static', fileName)
+        f.save(upload_path)
+
+        ret = {
+            'k1': 'v1',
+            'k2': 'v1',
+            'k3': 'v1',
+            'k4': 'v1',
+        }
+        return render_template('upload.html', fileName=fileName, ret=ret)
+    return render_template('upload.html')
 
 
 @app.route('/ocr', methods=['POST'])

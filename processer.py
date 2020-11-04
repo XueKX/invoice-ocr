@@ -92,10 +92,10 @@ def get_perspective_img(parse_img_name):
     '''
     W = 1920  # resize后的宽
     template_img_name = './images/template.jpg'
-    # test_img = './carry_zone/test_02.jpg'
+    # test_img = './carry_zone/test_04.jpg'
 
     # SURF（加速稳健特征）算法
-    min_hessian = 100
+    min_hessian = 500
     surf = cv2.xfeatures2d.SURF_create(min_hessian)  # 默认100，关键点检测的阈值，越高监测的点越少
     global kp1, des1, hf1, wf1
     if kp1 is None:
