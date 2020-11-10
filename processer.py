@@ -5,6 +5,7 @@
 @time: 2020/10/27 19:04 
 @desc: 
 '''
+import base64
 import functools
 import logging
 import time
@@ -68,6 +69,12 @@ def call_time(func):
     return wrapper
 
 
+def img2base64(imgpath):
+    with open(imgpath, "rb") as f:  # 转为二进制格式
+        base64_data = base64.b64encode(f.read()).decode()  # 使用base64进行加密
+    return base64_data
+
+
 def img_resize(imggray, dwidth):
     '''
     等比缩放
@@ -91,11 +98,11 @@ def get_perspective_img(parse_img_name):
     :return:
     '''
     W = 1920  # resize后的宽
-    template_img_name = './images/template.jpg'
+    template_img_name = './images/template_bak.jpg'
     # test_img = './carry_zone/test_04.jpg'
 
     # SURF（加速稳健特征）算法
-    min_hessian = 500
+    min_hessian = 300
     surf = cv2.xfeatures2d.SURF_create(min_hessian)  # 默认100，关键点检测的阈值，越高监测的点越少
     global kp1, des1, hf1, wf1
     if kp1 is None:
@@ -563,7 +570,10 @@ if __name__ == '__main__':
                'bill_no': (1433, 96, 1702, 162), 'price': (1365, 809, 1530, 843), 'tax': (1738, 809, 1877, 850),
                'account_cap': (645, 866, 949, 901), 'account_lower': (1529, 872, 1707, 907),
                'date': (1592, 211, 1821, 246)}
+    imgpath = './carry_zone/invoice_05.jpg'
+    parse_img = cv2.imread(imgpath, cv2.IMREAD_GRAYSCALE)
     for i in range(3):
         s1 = time.time()
-        get_perspective_img('')
+        get_perspective_img(parse_img)
         print(time.time() - s1)
+        break

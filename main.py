@@ -39,6 +39,7 @@ def hello_world():
 
 
 @app.route('/upload', methods=['POST', 'GET'])  # 添加路由
+@call_time
 def upload():
     '''
     页面展示
@@ -49,6 +50,22 @@ def upload():
 
     def allowed_file(filename):
         return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+    def get_ocr_ret(image):
+        perspective_img = get_perspective_img(image)
+
+        boxes = detect_pse(perspective_img)
+
+        ret_box_dic = get_area(boxes, perspective_img.shape[1], perspective_img.shape[0])
+
+        ret_data = {}
+        for i, key in enumerate(ret_box_dic.keys()):
+            cut_image = get_cut_image(ret_box_dic[key], perspective_img)
+            cv2.imwrite(path + '/{}.jpg'.format(key), cut_image)
+            ocr_ret = do_ocr(path + '/{}.jpg'.format(key))
+            ret_data[key] = ocr_ret[0][0]
+
+        return ret_data
 
     if request.method == 'POST':
         f = request.files['file']
@@ -63,12 +80,9 @@ def upload():
         upload_path = os.path.join(basepath, 'static', fileName)
         f.save(upload_path)
 
-        ret = {
-            'k1': 'v1',
-            'k2': 'v1',
-            'k3': 'v1',
-            'k4': 'v1',
-        }
+        im = cv2.imread(upload_path, cv2.IMREAD_GRAYSCALE)
+        ret = get_ocr_ret(im)
+
         return render_template('upload.html', fileName=fileName, ret=ret)
     return render_template('upload.html')
 
