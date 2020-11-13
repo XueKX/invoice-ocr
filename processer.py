@@ -101,9 +101,12 @@ def get_perspective_img(parse_img_name):
     template_img_name = './images/template_bak.jpg'
     # test_img = './carry_zone/test_04.jpg'
 
-    # SURF（加速稳健特征）算法
-    min_hessian = 300
-    surf = cv2.xfeatures2d.SURF_create(min_hessian)  # 默认100，关键点检测的阈值，越高监测的点越少
+    if 1:
+        # SIFT 精度高 慢 20s
+        surf = cv2.xfeatures2d.SIFT_create()
+    else:
+        # SURF（加速稳健特征）算法 速度快
+        surf = cv2.xfeatures2d.SURF_create(1000)  # 默认100，关键点检测的阈值，越高监测的点越少
     global kp1, des1, hf1, wf1
     if kp1 is None:
         # UMat是一个图像容器
@@ -576,4 +579,3 @@ if __name__ == '__main__':
         s1 = time.time()
         get_perspective_img(parse_img)
         print(time.time() - s1)
-        break
