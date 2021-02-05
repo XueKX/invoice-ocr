@@ -3,6 +3,7 @@ import base64
 import functools
 import io
 import os
+import re
 import time
 
 import cv2
@@ -38,6 +39,18 @@ def hello_world():
     return 'Hello World!'
 
 
+def fix_ocr(ret_box_dic, perspective_img):
+    ret_data = {}
+    for i, key in enumerate(ret_box_dic.keys()):
+        cut_image = get_cut_image(ret_box_dic[key], perspective_img)
+        cv2.imwrite(path + '/{}.jpg'.format(key), cut_image)
+        ocr_ret = do_ocr(path + '/{}.jpg'.format(key))
+        if key == 'buyer_name' or key == 'seller_name':
+            ocr_ret[0][0] = re.sub('名?.*称：', '', ocr_ret[0][0])
+        ret_data[key] = ocr_ret[0][0]
+    return ret_data
+
+
 @app.route('/upload', methods=['POST', 'GET'])  # 添加路由
 @call_time
 def upload():
@@ -58,14 +71,7 @@ def upload():
 
         ret_box_dic = get_area(boxes, perspective_img.shape[1], perspective_img.shape[0])
 
-        ret_data = {}
-        for i, key in enumerate(ret_box_dic.keys()):
-            cut_image = get_cut_image(ret_box_dic[key], perspective_img)
-            cv2.imwrite(path + '/{}.jpg'.format(key), cut_image)
-            ocr_ret = do_ocr(path + '/{}.jpg'.format(key))
-            ret_data[key] = ocr_ret[0][0]
-
-        return ret_data
+        return fix_ocr(ret_box_dic, perspective_img)
 
     if request.method == 'POST':
         f = request.files['file']
@@ -83,7 +89,7 @@ def upload():
         im = cv2.imread(upload_path, cv2.IMREAD_GRAYSCALE)
         ret = get_ocr_ret(im)
 
-        return render_template('upload.html', fileName=fileName, ret=ret)
+        return render_template('show_result.html', fileName=fileName, ret=ret)
     return render_template('upload.html')
 
 
@@ -104,12 +110,7 @@ def ocr():
 
     ret_box_dic = get_area(boxes, perspective_img.shape[1], perspective_img.shape[0])
 
-    ret_data = {}
-    for i, key in enumerate(ret_box_dic.keys()):
-        cut_image = get_cut_image(ret_box_dic[key], perspective_img)
-        cv2.imwrite(path + '/{}.jpg'.format(key), cut_image)
-        ocr_ret = do_ocr(path + '/{}.jpg'.format(key))
-        ret_data[key] = ocr_ret[0][0]
+    ret_data = fix_ocr(ret_box_dic, perspective_img)
 
     return json.dumps(ret_data, ensure_ascii=False)
 

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>识别结果</title>
+</head>
+<body>
+<div class="ai-container">
+    <div class="tech-recognition-content" style="width:100%;">
+        <div class="tech-recognition-scan" style="display: none;"></div>
+        <div class="tech-img-content" style="width:50%;float:left;">
+            <img src="{{ url_for('static', filename= fileName) }}" width="100%" height="100%" alt="警告信息"/>
+        </div>
+        <div class="demo-collapse-item" style="width:50%;float:left;">
+            <div class="demo-collapse-item-title demo-json-title">
+                识别结果
+                <span class="demo-collapse-item-arrow is-active"></span></div>
+            <div class="demo-collapse-item-cnt" style="height: 504px; opacity: 1;">
+                <ul class="result-item">
+                    <!--                    <li class="result-item"><span class="result-name">发票名称:</span> <span-->
+                    <!--                            class="result-des">增值税专用发票</span></li>-->
+                    <li class="result-item"><span class="result-name">发票代码:</span> <span class="result-des">{{ ret.buyer_id }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">发票号码:</span>
+                        <span class="result-des">{{ ret.bill_no }}</span>
+                    </li>
+                    <!--                    <li class="result-item"><span class="result-name">校验码</span> <span class="result-des"></span></li>-->
+                    <li class="result-item"><span class="result-name">开票日期:</span> <span
+                            class="result-des">{{ ret.date }}</span></li>
+                    <li class="result-item"><span class="result-name">购方名称:</span> <span class="result-des">{{ ret.buyer_name }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">购方纳税人识别号:</span> <span class="result-des">{{ ret.buyer_id }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">购方地址及电话:</span> <span class="result-des">{{ ret.buyer_address_phone }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">购方开户行及账号:</span> <span class="result-des">{{ ret.buyer_bank_no }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">销售方名称:</span> <span class="result-des">{{ ret.seller_name }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">销售方纳税人识别号:</span> <span class="result-des">{{ ret.seller_id }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">销售方地址及电话:</span> <span class="result-des">{{ ret.seller_address_phone }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">销售方开户行及账号:</span> <span class="result-des">{{ ret.seller_bank_no }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">合计金额:</span> <span class="result-des">{{ ret.price }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">合计税额:</span> <span class="result-des">{{ ret.tax }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">价税合计(大写):</span> <span class="result-des">{{ ret.account_cap }}</span>
+                    </li>
+                    <li class="result-item"><span class="result-name">价税合计(小写):</span> <span class="result-des">{{ ret.account_lower }}</span>
+                    </li>
+                    <!--                    <li class="result-item"><span class="result-name">密码区</span> <span class="result-des">074/45781873408&gt;/6&gt;8&gt;65*887676033/51+&lt;5415&gt;9/32&#45;&#45;852&gt;1+29&lt;65&gt;641-5&gt;66&lt;500&gt;87/*-34&lt;943359034&gt;716905113*4242&gt;</span>-->
+                    </li>
+                    <!--                    <li class="result-item"><span class="result-name">收款人</span> <span class="result-des">{{ ret.buyer_name }}</span>-->
+                    <!--                    </li>-->
+                    <!--                    <li class="result-item"><span class="result-name">复核</span> <span class="result-des">{{ ret.buyer_name }}</span>-->
+                    <!--                    </li>-->
+                    <!--                    <li class="result-item"><span class="result-name">开票人</span> <span class="result-des">{{ ret.buyer_name }}</span>-->
+                    <!--                    </li>-->
+                    <!--                    <li class="result-item"><span class="result-name">备注</span> <span class="result-des"></span></li>-->
+                </ul> <!----></div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
